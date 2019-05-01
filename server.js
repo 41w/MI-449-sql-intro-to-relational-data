@@ -9,9 +9,7 @@ var bodyParser = require('body-parser')
 app.use(bodyParser.json())
 var port = process.env.PORT || 8080
 
-app.get('/', async function (request, response) {
-  var client = await pool.connect()
-  await client.query('create table todos(id serial primary key, slug text not null, text text not null, status varchar(11) not null );')
+app.get('/', function (request, response) {
   response.json({
     welcome: 'welcome to my API!'
   })
@@ -49,7 +47,7 @@ app.post('/todos', async function (request, response) {
 
   var client = await pool.connect()
   var result = await client.query(
-    'insert into todos (slug, name, price) values ($1, $2, $3) returning *',
+    'insert into todos (slug, text, status) values ($1, $2, $3) returning *',
     [slug, text, status]
   )
   response.json(result.rows[0])
@@ -60,12 +58,12 @@ app.post('/todos', async function (request, response) {
 app.delete('/todos/:id', async function (request, response) {
   var client = await pool.connect()
   var result = await client.query(
-    'select from product where id = $1',
+    'select * from todos where id = $1',
     [request.params.id]
   )
   if (result.rows.length > 0) {
     await client.query(
-      'delete from product where id = $1',
+      'delete from todos where id = $1',
       [request.params.id]
     )
     response.redirect('/todos')
@@ -95,7 +93,7 @@ app.put('/todos/:id', async function (request, response) {
 
   var client = await pool.connect()
   var result = await client.query(
-    'update product set slug = $1, text = $2, price = $3 where id = $4 returning *',
+    'update todos set slug = $1, text = $2, status = $3 where id = $4 returning *',
     [slug, text, status, request.params.id]
   )
   if (result.rows.length === 1) {

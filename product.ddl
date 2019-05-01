@@ -1,6 +1,6 @@
-create table product (
+create table todos (
   id serial primary key,
   slug text not null,
-  name text not null,
-  price numeric(5,2) not null
+  text text not null,
+  status varchar(11) not null
 );
