@@ -1,69 +1,111 @@
-var todos = require('./todos.js')
+var { Pool } = require('pg')
+var pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: true
+})
 var express = require('express')
 var app = express()
 var bodyParser = require('body-parser')
 app.use(bodyParser.json())
 var port = process.env.PORT || 8080
 
-// get
-app.get('/', function (request, response) {
+app.get('/', async function (request, response) {
+  var client = await pool.connect()
+  await client.query('create table todos(id serial primary key, slug text not null, text text not null, status varchar(11) not null );')
   response.json({
     welcome: 'welcome to my API!'
   })
 })
 
-app.get('/todos', function (request, response) {
-  response.json(todos)
+// get
+app.get('/todos', async function (request, response) {
+  var client = await pool.connect()
+  var result = await client.query('select * from todos')
+  response.json(result.rows)
+  client.release()
 })
 
-app.get('/todos/:id', function (request, response) {
-  if (!todos[request.params.id]) {
+app.get('/todos/:id', async function (request, response) {
+  var client = await pool.connect()
+  var result = await client.query(
+    'select * from todos where id = $1',
+    [request.params.id]
+  )
+  if (result.rows.length === 1) {
+    response.json(result.rows[0])
+  } else {
     response.status(404).json({
       error: 'sorry, no such todo item: ' + request.params.id
     })
-    return
   }
-  response.json(todos[request.params.id])
+  client.release()
 })
 
 // post
-app.post('/todos', function (request, response) {
-  var id = request.body.text.trim().toLowerCase().split(' ').join('-')
-  todos[id] = {
-    text: request.body.text.trim(),
-    status: request.body.status.trim()
-  }
-  response.redirect('/todos/' + id)
+app.post('/todos', async function (request, response) {
+  var text = request.body.text.trim()
+  var slug = text.toLowerCase().split(' ').join('-')
+  var status = request.body.status.trim()
+
+  var client = await pool.connect()
+  var result = await client.query(
+    'insert into todos (slug, name, price) values ($1, $2, $3) returning *',
+    [slug, text, status]
+  )
+  response.json(result.rows[0])
+  client.release()
 })
 
 // delete
-app.delete('/todos/:id', function (request, response) {
-  if (!todos[request.params.id]) {
+app.delete('/todos/:id', async function (request, response) {
+  var client = await pool.connect()
+  var result = await client.query(
+    'select from product where id = $1',
+    [request.params.id]
+  )
+  if (result.rows.length > 0) {
+    await client.query(
+      'delete from product where id = $1',
+      [request.params.id]
+    )
+    response.redirect('/todos')
+  } else {
     response.status(404).json({
       error: 'sorry, no such todo item: ' + request.params.id
     })
-    return
   }
-  delete todos[request.params.id]
-  response.redirect('/todos')
+  client.release()
 })
 
 // put: update
-app.put('/todos/:id', function (request, response) {
-  if (!todos[request.params.id]) {
+app.put('/todos/:id', async function (request, response) {
+  if (
+    request.body.text === undefined ||
+    request.body.status === undefined
+  ) {
     response.status(404).json({
-      error: 'sorry, no such todo item: ' + request.params.id
+      error: 'text and status are required'
     })
     return
   }
-  var todo = todos[request.params.id]
-  if (request.body.text !== undefined) {
-    todo.text = request.body.text.trim()
+
+  var text = request.body.text.trim()
+  var slug = text.toLowerCase().split(' ').join('-')
+  var status = request.body.status.trim()
+
+  var client = await pool.connect()
+  var result = await client.query(
+    'update product set slug = $1, text = $2, price = $3 where id = $4 returning *',
+    [slug, text, status, request.params.id]
+  )
+  if (result.rows.length === 1) {
+    response.json(result.rows[0])
+  } else {
+    response.status(404).json({
+      error: 'sorry, no such todo item: ' + request.params.id
+    })
   }
-  if (request.body.status !== undefined) {
-    todo.status = request.body.status.trim()
-  }
-  response.redirect('/todos/' + request.params.id)
+  client.release()
 })
 
 // 404 message

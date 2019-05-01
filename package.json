@@ -2,7 +2,7 @@
   "name": "api-project",
   "version": "1.0.0",
   "scripts": {
-    "server": "cross-env DATABASE_URL=<postgres://txfopjwybmallz:239ac982f9005258f27b6ea401765b0805fd0ec8e0e964466a1c0f277340c4a6@ec2-54-235-114-242.compute-1.amazonaws.com:5432/d7802nm034hg0t> nodemon server.js"
+    "server": "cross-env DATABASE_URL=postgres://qjevengucwgwim:f164416af3594261009b2ec46d4297a5776286f1df5412b3349bac4eb9752a0b@ec2-54-235-167-210.compute-1.amazonaws.com:5432/dd6hfenft0a67q nodemon server.js"
   },
   "dependencies": {
     "body-parser": "^1.17.1",
